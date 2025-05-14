@@ -111,7 +111,8 @@ const SAMPLE_ADDRESSES = {
   near: 'treasury.near',
   polkadot: '13Z7KjGnzdAdMre9cqRwTZHR6F2p36gqBsaNmQwwosiPz8JT',
   stacks: 'SM18F50N7QBHQ9CAMPRJAMG9DYQC1DVB7D22RFR3D',
-  blast: '0x95925601eAFc0C89Cf39868bd49662b6015b5c72'
+  blast: '0x95925601eAFc0C89Cf39868bd49662b6015b5c72',
+  avalanche_c: '0x7A2DFE8B1C0F221F220D8D42A0d5CB54671B18F4',
 };
 
 const handlers = {
@@ -302,6 +303,98 @@ const handlers = {
       });
     } catch (error) {
       console.error(`Error fetching ${chain} balance:`, error);
+      res.status(500).json({
+        success: false,
+        errors: [error.message]
+      });
+    }
+  },
+
+  async avalancheHandler(req, res) {
+    try {
+      const { address } = req.params;
+      const { type = 'native' } = req.query;
+      
+      // Avalanche C-Chain RPC endpoint
+      const rpcUrl = 'https://api.avax.network/ext/bc/C/rpc';
+      
+      if (type === 'token' && req.query.contractaddress) {
+        // For token balances, we need to make an eth_call to the token contract
+        const data = `0x70a08231000000000000000000000000${address.replace('0x', '')}`;
+        
+        const response = await axios.post(rpcUrl, {
+          jsonrpc: '2.0',
+          id: 1,
+          method: 'eth_call',
+          params: [
+            {
+              to: req.query.contractaddress,
+              data: data
+            },
+            'latest'
+          ]
+        });
+        
+        if (!response.data || !response.data.result) {
+          throw new Error('Invalid response from Avalanche RPC');
+        }
+        
+        const balanceHex = response.data.result;
+        const balanceInWei = parseInt(balanceHex, 16);
+        const balanceInAvax = (balanceInWei / Math.pow(10, 18)).toString();
+        
+        res.status(200).json({
+          success: true,
+          data: {
+            Ticker: 'TOKEN', // Generic token ticker
+            Amount: balanceInAvax,
+            WalletId: `bitwave-wallet-id-${address.substring(0, 8)}`,
+            RemoteWalletId: address,
+            BlockId: '0',
+            TimestampSEC: Math.floor(Date.now() / 1000).toString(),
+            RawMetadata: {
+              source: 'Avalanche C-Chain RPC',
+              chain: 'Avalanche C-Chain',
+              raw_response: response.data
+            }
+          }
+        });
+      } else {
+        // For native AVAX balance
+        const response = await axios.post(rpcUrl, {
+          jsonrpc: '2.0',
+          id: 1,
+          method: 'eth_getBalance',
+          params: [address, 'latest']
+        });
+        
+        if (!response.data || !response.data.result) {
+          throw new Error('Invalid response from Avalanche RPC');
+        }
+        
+        const balanceHex = response.data.result;
+        const balanceInWei = parseInt(balanceHex, 16);
+        const balanceInAvax = (balanceInWei / Math.pow(10, 18)).toString();
+        
+        res.status(200).json({
+          success: true,
+          data: {
+            Ticker: 'AVAX',
+            Amount: balanceInAvax,
+            WalletId: `bitwave-wallet-id-${address.substring(0, 8)}`,
+            RemoteWalletId: address,
+            BlockId: '0',
+            TimestampSEC: Math.floor(Date.now() / 1000).toString(),
+            RawMetadata: {
+              source: 'Avalanche C-Chain RPC',
+              chain: 'Avalanche C-Chain',
+              raw_response: response.data
+            }
+          }
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching Avalanche C-Chain balance:', error);
       res.status(500).json({
         success: false,
         errors: [error.message]
@@ -925,6 +1018,9 @@ app.get('/api/v1/chains/:chain/addresses/:address/balance', (req, res) => {
     case 'optimism':
     case 'base':
       handlers.etherscanHandler(req, res, chain);
+      break;
+    case 'avalanche_c':
+      handlers.avalancheHandler(req, res);
       break;
     
     case 'litecoin':
