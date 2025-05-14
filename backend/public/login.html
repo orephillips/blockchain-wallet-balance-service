@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Multi Blockchain Wallet Balance Service - Login</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+      background-color: #f5f5f5;
+    }
+    .login-container {
+      background-color: white;
+      border-radius: 8px;
+      padding: 30px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      margin-top: 50px;
+    }
+    h1 {
+      text-align: center;
+      color: #333;
+    }
+    .form-group {
+      margin-bottom: 20px;
+    }
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: bold;
+    }
+    input {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 16px;
+      box-sizing: border-box;
+    }
+    button {
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      padding: 12px 20px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 16px;
+      width: 100%;
+    }
+    button:hover {
+      background-color: #45a049;
+    }
+    .error-message {
+      color: #d32f2f;
+      margin-top: 15px;
+      text-align: center;
+      display: none;
+    }
+    .info-note {
+      margin-top: 20px;
+      padding: 15px;
+      background-color: #e8f4fd;
+      border-left: 4px solid #2196F3;
+      border-radius: 4px;
+    }
+    .logo {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+    .logo img {
+      max-width: 200px;
+    }
+  </style>
+</head>
+<body>
+  <div class="login-container">
+    <div class="logo">
+      <h2>BitWave</h2>
+    </div>
+    <h1>Multi Blockchain Wallet Balance Service</h1>
+    
+    <form id="login-form" onsubmit="return false;">
+      <div class="form-group">
+        <label for="apiKey">Enter your API Key:</label>
+        <input type="text" id="apiKey" placeholder="Your 40-character API key">
+      </div>
+      
+      <button type="button" id="login-button">Access Service</button>
+      
+      <div class="error-message" id="error-message">
+        <!-- Error message will be displayed here -->
+      </div>
+    </form>
+    
+    <div class="info-note">
+      <p><strong>Note:</strong> To request a free API key, please reach out to <a href="mailto:solutions@bitwave.io">solutions@bitwave.io</a></p>
+    </div>
+  </div>
+
+  <script>
+    document.getElementById('login-button').addEventListener('click', async () => {
+      const apiKey = document.getElementById('apiKey').value.trim();
+      const errorMessage = document.getElementById('error-message');
+      
+      // Hide any previous error message
+      errorMessage.style.display = 'none';
+      
+      if (!apiKey) {
+        errorMessage.textContent = 'Please enter an API key.';
+        errorMessage.style.display = 'block';
+        return;
+      }
+      
+      try {
+        console.log('Sending API key for verification:', apiKey);
+        const response = await fetch('/api/auth/verify', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ apiKey })
+        });
+        
+        const data = await response.json();
+        console.log('Verification response:', data);
+        
+        if (data.success) {
+          // Store the API key in session storage
+          sessionStorage.setItem('apiKey', apiKey);
+          // Store the API key in a cookie for server-side authentication
+          document.cookie = `apiKey=${apiKey}; path=/; max-age=86400`;
+          // Redirect to the main application
+          window.location.href = '/';
+        } else {
+          errorMessage.textContent = data.message || 'Invalid API key. Please try again.';
+          errorMessage.style.display = 'block';
+        }
+      } catch (error) {
+        console.error('Authentication error:', error);
+        errorMessage.textContent = 'An error occurred. Please try again later.';
+        errorMessage.style.display = 'block';
+      }
+    });
+  </script>
+</body>
+</html>

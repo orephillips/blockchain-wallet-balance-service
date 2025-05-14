@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Blockchain Wallet Balance Tester</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    .form-group {
+      margin-bottom: 15px;
+    }
+    label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: bold;
+    }
+    select, input, button {
+      padding: 8px;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    button {
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+    button:hover {
+      background-color: #45a049;
+    }
+    #results {
+      margin-top: 20px;
+      border: 1px solid #ddd;
+      padding: 15px;
+      border-radius: 5px;
+      background-color: #f9f9f9;
+      white-space: pre-wrap;
+    }
+    .loading {
+      display: none;
+      margin-top: 20px;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <h1>Blockchain Wallet Balance Tester</h1>
+  <p>Test the real API calls to fetch blockchain wallet balances</p>
+  
+  <div class="form-group">
+    <label for="blockchain">Select Blockchain:</label>
+    <select id="blockchain">
+      <option value="ethereum">Ethereum (Etherscan)</option>
+      <option value="litecoin">Litecoin (BlockCypher)</option>
+      <option value="gnosis">Gnosis Chain (Blockscout)</option>
+      <option value="stellar">Stellar</option>
+    </select>
+  </div>
+  
+  <div class="form-group">
+    <label for="address">Wallet Address:</label>
+    <input type="text" id="address" placeholder="Enter blockchain wallet address">
+  </div>
+  
+  <div class="form-group">
+    <label for="endpoint">API Endpoint:</label>
+    <select id="endpoint">
+      <option value="native">Get Native Balance</option>
+      <option value="tokens">Get Token Balances</option>
+      <option value="all">Get All Balances</option>
+    </select>
+  </div>
+  
+  <button id="fetch-button">Fetch Balances</button>
+  
+  <div class="loading" id="loading">
+    <p>Loading...</p>
+  </div>
+  
+  <div id="results">
+    Results will appear here...
+  </div>
+  
+  <script>
+    document.getElementById('fetch-button').addEventListener('click', async () => {
+      const blockchain = document.getElementById('blockchain').value;
+      const address = document.getElementById('address').value;
+      const endpoint = document.getElementById('endpoint').value;
+      const resultsDiv = document.getElementById('results');
+      const loadingDiv = document.getElementById('loading');
+      
+      if (!address) {
+        resultsDiv.textContent = 'Please enter a wallet address';
+        return;
+      }
+      
+      // Show loading indicator
+      loadingDiv.style.display = 'block';
+      resultsDiv.textContent = 'Fetching data...';
+      
+      try {
+        let url = '';
+        
+        // Map blockchain values to chainIds
+        const chainIdMap = {
+          'ethereum': '1',
+          'litecoin': '2',
+          'gnosis': '100',
+          'stellar': 'stellar'
+        };
+        
+        const chainId = chainIdMap[blockchain];
+        
+        if (endpoint === 'native') {
+          url = `/api/v1/chains/${chainId}/addresses/${address}/native-balance`;
+        } else if (endpoint === 'tokens') {
+          url = `/api/v1/chains/${chainId}/addresses/${address}/erc20-balances`;
+        } else {
+          url = `/api/v1/chains/${chainId}/addresses/${address}/balances`;
+        }
+        
+        const response = await fetch(url);
+        const data = await response.json();
+        
+        // Display results
+        resultsDiv.textContent = JSON.stringify(data, null, 2);
+      } catch (error) {
+        resultsDiv.textContent = `Error: ${error.message}`;
+      } finally {
+        // Hide loading indicator
+        loadingDiv.style.display = 'none';
+      }
+    });
+    
+    // Add sample addresses for each blockchain
+    document.getElementById('blockchain').addEventListener('change', (e) => {
+      const addressInput = document.getElementById('address');
+      const blockchain = e.target.value;
+      
+      // Sample addresses for each blockchain
+      const sampleAddresses = {
+        'ethereum': '0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045', // Vitalik's address
+        'litecoin': 'LM2WMpR1Rp6j3Sa59cMXMs1SPzj9eXpGc1',
+        'gnosis': '0x4F96Fe3b7A6Cf9725f59d353F723c1bDb64CA6Aa',
+        'stellar': 'GARAR5QR7WRL24MQMSO4INWV7C5SE4EE2YVXTLD6ORONYFHSUAGZYSLN'
+      };
+      
+      addressInput.placeholder = `Enter ${blockchain} address (e.g. ${sampleAddresses[blockchain]})`;
+      addressInput.value = sampleAddresses[blockchain];
+    });
+    
+    // Initialize with Ethereum address
+    document.getElementById('blockchain').dispatchEvent(new Event('change'));
+  </script>
+</body>
+</html>

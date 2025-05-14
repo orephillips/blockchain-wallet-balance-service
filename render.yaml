@@ -1,0 +1,27 @@
+services:
+  - type: web
+    name: multi-blockchain-wallet-balance-service
+    env: docker
+    repo: https://github.com/your-username/blockchain-wallet-balance-service
+    dockerfilePath: ./backend/Dockerfile
+    envVars:
+      - key: PORT
+        value: 3005
+      - key: ETHERSCAN_API_KEY
+        sync: false
+      - key: ARBISCAN_API_KEY
+        sync: false
+      - key: POLYSCAN_API_KEY
+        sync: false
+      - key: BSCSCAN_API_KEY
+        sync: false
+      - key: FANTOM_API_KEY
+        sync: false
+      - key: OPTIMISM_API_KEY
+        sync: false
+      - key: BASE_API_KEY
+        sync: false
+      - key: CARDANO_API_KEY
+        sync: false
+      - key: STACKS_API_KEY
+        sync: false

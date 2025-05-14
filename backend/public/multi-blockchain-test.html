@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Multi Blockchain Wallet Balance Service</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    .logout-container {
+      text-align: right;
+      margin-bottom: 20px;
+    }
+    .logout-button {
+      background-color: #f44336;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .logout-button:hover {
+      background-color: #d32f2f;
+    }
+    .form-group {
+      margin-bottom: 15px;
+    }
+    label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: bold;
+    }
+    select, input, button {
+      padding: 8px;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    button {
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+    button:hover {
+      background-color: #45a049;
+    }
+    #results {
+      margin-top: 20px;
+      border: 1px solid #ddd;
+      padding: 15px;
+      border-radius: 5px;
+      background-color: #f9f9f9;
+      white-space: pre-wrap;
+    }
+    .loading {
+      display: none;
+      margin-top: 20px;
+      text-align: center;
+    }
+    .blockchain-group {
+      margin-bottom: 10px;
+    }
+    .blockchain-group label {
+      font-weight: bold;
+    }
+    .token-option {
+      display: none;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="logout-container">
+    <button id="logout-button" class="logout-button">Logout</button>
+  </div>
+
+  <h1>Multi Blockchain Wallet Balance Service</h1>
+  <p>Test real API calls to fetch blockchain wallet balances across multiple networks</p>
+  
+  <div class="form-group">
+    <label for="blockchain">Select Blockchain:</label>
+    <select id="blockchain">
+      <optgroup label="EVM Chains">
+        <option value="ethereum">Ethereum (Etherscan)</option>
+        <option value="arbitrum">Arbitrum (Arbiscan)</option>
+        <option value="polygon">Polygon (Polygonscan)</option>
+        <option value="bsc">Binance Smart Chain (BSCscan)</option>
+        <option value="fantom">Fantom (FTMscan)</option>
+        <option value="optimism">Optimism (Optimistic Etherscan)</option>
+        <option value="base">Base (Basescan)</option>
+        <option value="gnosis">Gnosis Chain (Blockscout)</option>
+        <option value="aurora">Aurora</option>
+        <option value="celo">Celo</option>
+      </optgroup>
+      <optgroup label="Bitcoin & Derivatives">
+        <option value="bitcoin">Bitcoin (Blockchain.info)</option>
+        <option value="litecoin">Litecoin (BlockCypher)</option>
+      </optgroup>
+      <optgroup label="Cosmos Ecosystem">
+        <option value="evmos">Evmos</option>
+        <option value="umee">Umee</option>
+        <option value="kyve">Kyve</option>
+        <option value="persistence">Persistence</option>
+        <option value="axelar">Axelar</option>
+        <option value="celestia">Celestia</option>
+        <option value="kava">Kava</option>
+        <option value="agoric">Agoric</option>
+        <option value="akash">Akash</option>
+        <option value="regen">Regen</option>
+        <option value="provenance">Provenance</option>
+        <option value="osmosis">Osmosis</option>
+      </optgroup>
+      <optgroup label="Other Blockchains">
+        <option value="hedera">Hedera</option>
+        <option value="stellar">Stellar</option>
+        <option value="filecoin">Filecoin</option>
+        <option value="deso">Deso</option>
+        <option value="sui">SUI</option>
+        <option value="arweave">Arweave</option>
+        <option value="cardano">Cardano</option>
+        <option value="kusama">Kusama</option>
+        <option value="near">NEAR</option>
+        <option value="polkadot">Polkadot</option>
+        <option value="stacks">Stacks</option>
+        <option value="blast">Blast</option>
+      </optgroup>
+    </select>
+  </div>
+  
+  <div class="form-group">
+    <label for="address">Wallet Address:</label>
+    <input type="text" id="address" placeholder="Enter blockchain wallet address">
+  </div>
+  
+  <div class="form-group token-option" id="token-option">
+    <label for="balance-type">Balance Type:</label>
+    <select id="balance-type">
+      <option value="native">Native Balance</option>
+      <option value="token">Token Balance</option>
+    </select>
+  </div>
+  
+  <div class="form-group token-option" id="token-address-option">
+    <label for="token-address">Token Contract Address:</label>
+    <input type="text" id="token-address" placeholder="Enter token contract address">
+  </div>
+  
+  <button id="fetch-button">Fetch Balance</button>
+  
+  <div class="loading" id="loading">
+    <p>Loading...</p>
+  </div>
+  
+  <div id="results">
+    Results will appear here...
+  </div>
+  
+  <script>
+    // Check if user is authenticated
+    function checkAuthentication() {
+      const apiKey = sessionStorage.getItem('apiKey');
+      if (!apiKey) {
+        window.location.href = '/login.html';
+      }
+    }
+    
+    // Run authentication check on page load
+    checkAuthentication();
+    
+    // Handle logout
+    document.getElementById('logout-button').addEventListener('click', () => {
+      sessionStorage.removeItem('apiKey');
+      window.location.href = '/login.html';
+    });
+    
+    // Sample addresses for each blockchain
+    const SAMPLE_ADDRESSES = {
+      ethereum: '0x25D276c7b1ecD02Fabad67B34bBCC87630983438',
+      arbitrum: '0x011d9F2381Ce5073e9A4e57B685F485C7D76B8B3',
+      polygon: '0x55cb29CF8cBD2194D96F7f6B967C0b14adAfcD17',
+      bsc: '0x75B851a27D7101438F45fce31816501193239A83',
+      fantom: '0x8E1701CFd85258DDb8DFE89Bc4c7350822B9601D',
+      optimism: '0xAE0b5DF2dFaaCD6EB6c1c56Cc710f529F31C6C44',
+      base: '0xD379F3d4578DE7aC47a5928811B3407Ef03F7C49',
+      gnosis: '0x7Ad205683e9aA9FCB42fC996c9B91b94D9054BB7',
+      hedera: '0.0.400',
+      litecoin: 'LcNS6c8RddAMjewDrUAAi8BzecKoosnkN3',
+      stellar: 'GDUY7J7A33TQWOSOQGDO776GGLM3UQERL4J3SPT56F6YS4ID7MLDERI4',
+      bitcoin: 'bc1qgcfsthv6dx94a7uqq9prtqxpdd0udcfr6uwrg3',
+      celo: '0x87Ccdf47726Bf2D714BEf95820811df138e19Cc4',
+      evmos: 'evmos1yt46fjxv5dac5wmtkxxxj42d94h8nav4sd2s6f',
+      umee: 'umee1u5fnrzss6ffcde4jsqqcr4qyv783e4lg0kjl3k',
+      kyve: 'kyve1hae0u8jqfedpm7u5ng6k464xsxx32tvluqus8t',
+      persistence: 'persistence1cwv9qc04nhuev2kgypltlpq6x2mjutf43qtpuq',
+      axelar: 'axelar1rd7le6pc7hjj0x6mly3d3mn99nuvrrkpqe4pzc',
+      celestia: 'celestia14u95n7y5epwfk2fmzrx9ves8rmpw539fx6f4sh',
+      kava: 'kava1ceun2qqw65qce5la33j8zv8ltyyaqqfcxftutz',
+      agoric: 'agoric18tl9ph67ptsxwk477qpcqzr7enjtehew2z6jaf',
+      akash: 'akash1uepjmgfuk6rnd0djsglu88w7d0t49lml6zc0vr',
+      regen: 'regen1t8p3zdu3h8qzggfmvvvmtdnaj4trcsfhzzmydg',
+      provenance: 'pb10lkmc6kvym23ykylgzpghalgwnw33w0c0shvxp',
+      osmosis: 'osmo1tf7wjthwt9mgywqvjdkj974rp5awzzm4t695gx',
+      filecoin: 'f1nfwi4ieqom5l2ck2fkl6aumwiotklsf4utht6by',
+      deso: 'BC1YLg38KgfyDfuUd9NkjrGuuMjBUWth3CbaKygp3XEjov8ZyUUKqTV',
+      sui: '0xea0e3284dd4069836f66697c5ac479e901c748f63f7910384d44a05ec68fa862',
+      arweave: 'mCNkDI6yWxaibA_niptby5p7h4qWuZHVF-LFm6c42SY',
+      aurora: '0xabCB669237c9D2bf0F595B701260ee528a149Cdb',
+      cardano: 'addr1qye4kkmle50f3k6tqt6alrgtv4ddk3u',
+      kusama: 'EM9jxKiiB4vU1C66Wg7MzFxNXJmY4mPgpPVafK1Kjw8FHyj',
+      near: 'treasury.near',
+      polkadot: '13Z7KjGnzdAdMre9cqRwTZHR6F2p36gqBsaNmQwwosiPz8JT',
+      stacks: 'SM18F50N7QBHQ9CAMPRJAMG9DYQC1DVB7D22RFR3D',
+      blast: '0x95925601eAFc0C89Cf39868bd49662b6015b5c72'
+    };
+
+    // Token contract addresses for testing token balances
+    const TOKEN_ADDRESSES = {
+      ethereum: '0x7d1afa7b718fb893db30a3abc0cfc608aacfebb0', // MATIC on Ethereum
+      arbitrum: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831', // USDC on Arbitrum
+      polygon: '0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359', // USDC on Polygon
+      bsc: '0x6d6521283CD3Fd0188Fe0408e700A5790a0f6C61', // Random token on BSC
+      fantom: '0x5b2AF7fd27E2Ea14945c82Dd254c79d3eD34685e', // Random token on Fantom
+      optimism: '0x4200000000000000000000000000000000000006', // WETH on Optimism
+      base: '0xba0Dda8762C24dA9487f5FA026a9B64b695A07Ea' // Random token on Base
+    };
+
+    // Chains that support token balances
+    const TOKEN_SUPPORTED_CHAINS = [
+      'ethereum', 'arbitrum', 'polygon', 'bsc', 'fantom', 'optimism', 'base', 'gnosis'
+    ];
+
+    document.getElementById('blockchain').addEventListener('change', (e) => {
+      const addressInput = document.getElementById('address');
+      const blockchain = e.target.value;
+      const tokenOption = document.getElementById('token-option');
+      const tokenAddressOption = document.getElementById('token-address-option');
+      const tokenAddressInput = document.getElementById('token-address');
+      
+      // Set sample address
+      if (SAMPLE_ADDRESSES[blockchain]) {
+        addressInput.value = SAMPLE_ADDRESSES[blockchain];
+      }
+      
+      // Show token options for supported chains
+      if (TOKEN_SUPPORTED_CHAINS.includes(blockchain)) {
+        tokenOption.style.display = 'block';
+        
+        // Set sample token address if available
+        if (TOKEN_ADDRESSES[blockchain]) {
+          tokenAddressInput.value = TOKEN_ADDRESSES[blockchain];
+        } else {
+          tokenAddressInput.value = '';
+        }
+      } else {
+        tokenOption.style.display = 'none';
+        document.getElementById('balance-type').value = 'native';
+      }
+    });
+
+    document.getElementById('balance-type').addEventListener('change', (e) => {
+      const tokenAddressOption = document.getElementById('token-address-option');
+      
+      if (e.target.value === 'token') {
+        tokenAddressOption.style.display = 'block';
+      } else {
+        tokenAddressOption.style.display = 'none';
+      }
+    });
+
+    document.getElementById('fetch-button').addEventListener('click', async () => {
+      const blockchain = document.getElementById('blockchain').value;
+      const address = document.getElementById('address').value;
+      const balanceType = document.getElementById('balance-type').value;
+      const tokenAddress = document.getElementById('token-address').value;
+      const resultsDiv = document.getElementById('results');
+      const loadingDiv = document.getElementById('loading');
+      
+      if (!address) {
+        resultsDiv.textContent = 'Please enter a wallet address';
+        return;
+      }
+      
+      // Show loading indicator
+      loadingDiv.style.display = 'block';
+      resultsDiv.textContent = 'Fetching data...';
+      
+      try {
+        let url = `/api/v1/chains/${blockchain}/addresses/${address}/balance`;
+        
+        // Add token parameters if needed
+        if (balanceType === 'token' && TOKEN_SUPPORTED_CHAINS.includes(blockchain)) {
+          if (!tokenAddress) {
+            resultsDiv.textContent = 'Please enter a token contract address';
+            loadingDiv.style.display = 'none';
+            return;
+          }
+          url += `?type=token&contractaddress=${tokenAddress}`;
+        }
+        
+        // Get API key from session storage
+        const apiKey = sessionStorage.getItem('apiKey');
+        
+        // Include API key in request headers
+        const response = await fetch(url, {
+          headers: {
+            'X-API-Key': apiKey
+          }
+        });
+        const data = await response.json();
+        
+        // Display results
+        resultsDiv.textContent = JSON.stringify(data, null, 2);
+      } catch (error) {
+        resultsDiv.textContent = `Error: ${error.message}`;
+      } finally {
+        // Hide loading indicator
+        loadingDiv.style.display = 'none';
+      }
+    });
+    
+    // Initialize with Ethereum address
+    document.getElementById('blockchain').dispatchEvent(new Event('change'));
+  </script>
+</body>
+</html>
