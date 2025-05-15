@@ -146,6 +146,30 @@
       cursor: pointer;
       margin-top: 20px;
     }
+
+    .response-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 20px;
+      font-family: Arial, sans-serif;
+      table-layout: fixed;
+      font-size: 50%; /* Reduce font size to 50% */
+    }
+    .response-table th, .response-table td {
+      border: 1px solid #ddd;
+      padding: 8px;
+      text-align: left;
+      word-wrap: break-word;
+      overflow-wrap: break-word;
+      max-width: 200px;
+    }
+    .response-table th {
+      background-color: #f2f2f2;
+      font-weight: bold;
+    }
+    .response-table tr:nth-child(even) {
+      background-color: #f9f9f9;
+    }
   </style>
 </head>
 <body>
@@ -490,10 +514,47 @@
             'X-API-Key': apiKey
           }
         });
+        
         const data = await response.json();
         
-        // Display results
-        resultsDiv.textContent = JSON.stringify(data, null, 2);
+        // Create timestamp for when the call was made
+        const timestamp = new Date().toISOString();
+        
+        // Extract ticker from response data (will be the token symbol)
+        const ticker = data.success && data.data && data.data.Ticker ? data.data.Ticker : 'N/A';
+        
+        // Create table for structured display
+        const tableHtml = `
+          <table class="response-table">
+            <thead>
+              <tr>
+                <th>Chain</th>
+                <th>Address</th>
+                <th>Type</th>
+                <th>Token Address</th>
+                <th>Token Symbol</th>
+                <th>Run Timestamp</th>
+                <th>TimestampSEC</th>
+                <th>Balance Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>${blockchain}</td>
+                <td>${address}</td>
+                <td>${balanceType}</td>
+                <td>${balanceType === 'native' ? '' : (tokenAddress || 'N/A')}</td>
+                <td>${ticker}</td>
+                <td>${timestamp}</td>
+                <td>${data.success && data.data && data.data.TimestampSEC ? data.data.TimestampSEC : 'N/A'}</td>
+                <td>${data.success && data.data ? data.data.Amount || 'N/A' : 'Error or no data'}</td>
+              </tr>
+            </tbody>
+          </table>
+        `;
+        
+        // Display the table above the JSON results
+        resultsDiv.innerHTML = tableHtml + '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
       } catch (error) {
         resultsDiv.textContent = `Error: ${error.message}`;
       } finally {
